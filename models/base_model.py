@@ -1,58 +1,39 @@
 #!/usr/bin/python3
-"""Defines the BaseModel class"""
-from uuid import uuid4
 from datetime import datetime
+import uuid
 from models import storage
 
-
 class BaseModel:
-    """This is the class that represents the BaseModel"""
-
-    def __init__(self, *arg, **kwargs):
-        """
-        It creates a new instance of the class.
-        """
-        tformat = "%Y-%m-%dT%H:%M:%S.%f"
-        self.id = str(uuid4())
-        self.created_at = datetime.now()
-        self.updated_at = datetime.now()
-        if len(kwargs) != 0:
-            for j, k in kwargs.items():
-                if j == "created_at" or j == "updated_at":
-                    self.__dict__[j] = datetime.strptime(k, tformat)
+    """Defines all common attributes/methods for other classess"""
+    def __init__(self, *args, **kwargs):
+        if kwargs:
+            del kwargs["__class__"]
+            for key, value in kwargs.items():
+                if key == 'created_at' or key == 'updated_at':
+                    value = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%f")
+                    setattr(self, key, value)
                 else:
-                    self.__dict__[j] = k
+                    setattr(self, key, value)
         else:
-            pass
-            storage.new(self)
+            self.id = str(uuid.uuid4())
+            self.created_at = datetime.now()
+            self.updated_at = datetime.now()
+        storage.new()
+
+    def __str__(self):
+        """Returns classname, id and dict"""
+        return "[{}] ({}) {}".format(self.__class__.__name__, self.id, self.__dict__)
 
     def save(self):
-        """
-        The save function updates the updated_at attribute of the
-        instance with the current datetime and saves the instance
-        to the JSON file
-        """
+        """Updates the public instance attribute updated_at with the current time"""
         self.updated_at = datetime.now()
         storage.save()
 
     def to_dict(self):
-        """
-        This function takes an object and returns a
-        dictionary representation of that object
-        :return: The return_dict is being returned.
-        """
-        return_dict = self.__dict__.copy()
-        return_dict["created_at"] = self.created_at.isoformat()
-        return_dict["updated_at"] = self.updated_at.isoformat()
-        return_dict["__class__"] = self.__class__.__name__
-        return return_dict
-
-    def __str__(self):
-        """
-        The function returns a string that contains the class name,
-        the id of the object, and the contents of the object's
-        dictionary
-        :return: The class name, the id of the object, and the dictionary of the object.
-        """
-        clname = self.__class__.__name__
-        return "[{}] ({}) {}".format(clname, self.id, self.__dict__)
+        """returns a dictionary containing all key/values of __dict__ instance"""
+        classname = self.__class__.__name__
+        updated_dict = self.__dict__.copy()
+        updated_dict['__class__'] = classname
+        updated_dict['created_at'] = self.created_at.isoformat()
+        updated_dict['updated_at'] = self.updated_at.isoformat()
+        return updated_dict
